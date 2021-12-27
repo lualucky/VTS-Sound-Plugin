@@ -183,7 +183,8 @@ public class VTubeStudio : MonoBehaviour
     private async void OnApplicationQuit()
     {
         connected = false;
-        await webSocket.Close();
+        if(webSocket != null)
+            await webSocket.Close();
     }
 
     void Update()

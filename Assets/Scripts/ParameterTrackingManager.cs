@@ -1,8 +1,8 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 using System.IO;
+using WebGL;
 
 public class ParameterTrackingManager : MonoBehaviour
 {
@@ -13,11 +13,10 @@ public class ParameterTrackingManager : MonoBehaviour
 
     List<AudioTrigger> parameters;
 
-    AudioSource audio;
-
     private void Start()
     {
-        
+        parameters = new List<AudioTrigger>();
+        parameters.Add(ParameterParent.GetComponentInChildren<AudioTrigger>());
     }
 
     public void AddParameterItem()
@@ -26,14 +25,9 @@ public class ParameterTrackingManager : MonoBehaviour
         parameters.Add(ui.GetComponent<AudioTrigger>());
     }
 
-    public void Save()
-    {
-
-    }
-
     public void PlaySound(AudioClip sound)
     {
-        audio.PlayOneShot(sound);
+        GetComponent<AudioSource>().PlayOneShot(sound);
     }
 
     public void DeleteParameter(AudioTrigger a)

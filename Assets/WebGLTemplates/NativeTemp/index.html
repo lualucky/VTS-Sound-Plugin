@@ -1,0 +1,58 @@
+﻿<!DOCTYPE html>
+<html lang="en-us">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>%UNITY_WEB_NAME%</title>
+    <script src="%UNITY_WEBGL_LOADER_URL%"></script>
+    <script>
+        var gameInstance = UnityLoader.instantiate("gameContainer", "%UNITY_WEBGL_BUILD_URL%");
+</script>
+
+</head>
+<body>
+	<script type='text/javascript'>
+        function selectFile(e) 
+		{
+            var files = e.target.files;
+            for (var i = 0, f; f = files[i]; i++) 
+			{
+                var reader = new FileReader();
+                reader.onload = (function (file) 
+				{
+                    return function (e) 
+					{
+                        (window.filedata = window.filedata ? window.filedata : {})[file.name] = e.target.result;
+                        gameInstance.SendMessage("WebGLLoadNativeImageManager", "_GetFile", file.name);
+                    }
+                })(f);
+                reader.readAsArrayBuffer(f);
+            }
+			document.getElementsByName("fileToUpload")[0].value = "";
+        }
+		
+        function hidePopup() 
+		{
+            gameInstance.SendMessage("WebGLLoadNativeImageManager", "_CloseSelectFilePopup");
+        }
+		
+        function FilterOfTypes(types) 
+		{
+            document.getElementsByName("fileToUpload")[0].accept = types;
+        }
+    </script>
+
+    <div class="webgl-content"  style="position: absolute; top: 50%; left: 50%; -webkit-transform: translate(-50%, -50%); transform: translate(-50%, -50%)">
+        <div id="gameContainer" style="width: %UNITY_WIDTH%px; height: %UNITY_HEIGHT%px; margin: auto"></div>
+    </div>
+	
+    <form id="showInfo" style="display: none;">
+        <input type="button" name="closePopup" id="closePopup" style="position: absolute; top: 1%; left: 1%; width: 98%; height: 98%;" onclick="hidePopup()" />
+        <label for="fileToUpload">
+            <img src="res/SelectBt.png" style="position: absolute; top: 45%; left: 42.8%; width: 16%; height: 10%;" />
+        </label>
+        <input type="File" name="fileToUpload" id="fileToUpload" style="width: 0px; height: 0px;" onchange="selectFile(event);return false;" />
+    </form>
+</body>
+</html>

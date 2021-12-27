@@ -3,6 +3,10 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using System;
+using System.IO;
+using WebGL;
+using System.Runtime.InteropServices;
+using UnityEngine.Networking;
 
 [Serializable]
 public class ParameterData
@@ -36,12 +40,16 @@ public class ParameterData
 
 public class AudioTrigger : MonoBehaviour
 {
+    [DllImport("__Internal")]
+    private static extern void JS_FileSystem_Sync();
+
     public InputField ParameterInput;
     public Dropdown TypeDropdown;
     public Slider SensitivitySlider;
     public Slider CooldownSlider;
     public Transform SoundListParent;
-    public List<Dropdown> SoundList;
+    public List<Transform> SoundList;
+    public List<AudioClip> Sound;
 
     public GameObject SoundUI;
 
@@ -50,11 +58,14 @@ public class AudioTrigger : MonoBehaviour
     VTubeStudio vtube;
     ParameterTrackingManager manager;
 
+    Transform soundPanel;
+
     void Start()
     {
         vtube = VTubeStudio.Instance;
 
-        vtube.onVTubeStudioConnected += VTubeConnected;
+        if(vtube)
+            vtube.onVTubeStudioConnected += VTubeConnected;
     }
 
     void VTubeConnected()
@@ -64,7 +75,7 @@ public class AudioTrigger : MonoBehaviour
 
     void Update()
     {
-        if (vtube.isConnected())
+        if (vtube && vtube.isConnected())
         {
             VTubeParameterValueData v = vtube.TrackingParameterValue(data.Parameter);
 
@@ -111,7 +122,50 @@ public class AudioTrigger : MonoBehaviour
     public void AddSound()
     {
         GameObject SoundLine = Instantiate(SoundUI, SoundListParent);
-        SoundList.Add(SoundLine.GetComponent<Dropdown>());
+        SoundList.Add(SoundLine.transform);
+        SoundLine.GetComponentInChildren<Button>().onClick.AddListener(() => SelectFile(SoundLine));
+    }
+
+    public void SelectFile(GameObject panel)
+    {
+        soundPanel = panel.transform;
+
+        NativeFileInteractionforWebGLManager.instance.callActionCallBack = SaveAudio;
+        NativeFileInteractionforWebGLManager.instance._OpenSelectFilePopup(".mp3");
+    }
+
+    public void SaveAudio(string value, byte[] data)
+    {
+        string ext = Path.GetExtension(value);
+        ext = ext.ToLower();
+
+        if (ext.EndsWith(".mp3"))
+        {
+            string savePath = Path.Combine(Application.persistentDataPath, Path.GetFileName(value));
+
+            System.IO.File.WriteAllBytes(savePath, data);
+
+            JS_FileSystem_Sync();
+
+            StartCoroutine(LoadAudioClip(savePath));
+            soundPanel.GetComponentInChildren<Text>().text = Path.GetFileNameWithoutExtension(value);
+        }
+
+        NativeFileInteractionforWebGLManager.instance.callActionCallBack = null;
+    }
+
+    IEnumerator LoadAudioClip(string path)
+    {
+        UnityWebRequest loader = UnityWebRequestMultimedia.GetAudioClip(path, AudioType.MPEG);
+        yield return loader.SendWebRequest();
+        if (loader.isHttpError)
+            Debug.LogError(loader.error);
+        else
+        {
+            AudioClip clip = DownloadHandlerAudioClip.GetContent(loader);
+
+            Sound.Add(clip);
+        }
     }
 
     public void RemoveSound()
